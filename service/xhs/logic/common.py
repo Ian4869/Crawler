@@ -1,10 +1,11 @@
+from typing import Optional
 from lib.logger import logger
-import requests
+from lib import requests
 import execjs
 import json
 
 API_HOST = 'https://edith.xiaohongshu.com'
-WEB_HOST = 'https://www.xiaohongshu.com/'
+WEB_HOST = 'https://www.xiaohongshu.com'
 
 COMMON_HEADERS = headers = {
     "accept": "application/json, text/plain, */*",
@@ -25,8 +26,13 @@ COMMON_HEADERS = headers = {
     "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
 }
 
+# 在程序启动时编译 JavaScript 代码
+with open('lib/js/xhs.js', encoding='utf-8') as f:
+    xhs_sign_obj = execjs.compile(f.read())
 
-def common_request(uri: str, params: dict, headers: dict, need_sign: bool = True, post: bool = True) -> tuple[dict, bool]:
+
+async def common_request(uri: str, params: dict, headers: dict, need_sign: bool = True, post: bool = True) -> tuple[
+    dict, bool]:
     """
     请求 xhs
     :param uri: 请求路径
@@ -36,16 +42,11 @@ def common_request(uri: str, params: dict, headers: dict, need_sign: bool = True
     """
     url = f'{API_HOST}{uri}'
     headers.update(COMMON_HEADERS)
-
     if post:
-        if need_sign:
-            xhs_sign_obj = execjs.compile(open('lib/js/xhs.js').read())
-            sign_header = xhs_sign_obj.call('sign', uri, params, headers.get('cookie', ''))
-            headers.update(sign_header)
-
+        sign_request(uri, params, headers, need_sign)
         logger.info(f'url: {url}, request {url}, params={params}, headers={headers}')
         body = json.dumps(params, separators=(',', ':'), ensure_ascii=False)
-        response = requests.post(url, data=body, headers=headers)
+        response = await requests.post(url, data=body, headers=headers)
     else:
         if params.get('image_formats', None):
             params['image_formats'] = ','.join(params['image_formats'])
@@ -53,13 +54,9 @@ def common_request(uri: str, params: dict, headers: dict, need_sign: bool = True
         uri = f'{uri}?{params_str}'
         url = f'{url}?{params_str}'
 
-        if need_sign:
-            xhs_sign_obj = execjs.compile(open('lib/js/xhs.js').read())
-            sign_header = xhs_sign_obj.call('sign', uri, None, headers.get('cookie', ''))
-            headers.update(sign_header)
-
+        sign_request(uri, None, headers, need_sign)
         logger.info(f'url: {url}, request {url}, params={params}, headers={headers}')
-        response = requests.get(url, headers=headers)
+        response = await requests.get(url, headers=headers)
 
     logger.info(
         f'url: {url}, params: {params}, response, code: {response.status_code}, body: {response.text}')
@@ -68,9 +65,24 @@ def common_request(uri: str, params: dict, headers: dict, need_sign: bool = True
         logger.error(
             f'url: {url}, params: {params}, request error, code: {response.status_code}, body: {response.text}')
         return {}, False
+
     if response.json().get('code', 0) != 0:
         logger.error(
             f'url: {url}, params: {params}, request error, code: {response.status_code}, body: {response.text}')
         return response.json(), False
 
     return response.json(), True
+
+
+def sign_request(uri: str, params: Optional[dict], headers: dict, need_sign: bool) -> None:
+    """
+    为请求添加签名
+    :param uri:
+    :param params:
+    :param headers:
+    :param need_sign:
+    :return:
+    """
+    if need_sign:
+        sign_header = xhs_sign_obj.call('sign', uri, params, headers.get('cookie', ''))
+        headers.update(sign_header)

@@ -33,6 +33,34 @@
 | data | true | struct | 数据 |
 | msg | true | string | 请求说明(成功、参数错误、服务器错误) |
 
+### 过期账号
+
+- **功能说明**
+
+用于标记账号过期，之后不再使用该账号发送请求。
+
+- **URL**
+
+  `/bilibili/expire_account`
+
+- **Method**
+
+  `POST`
+
+- **Data Params**
+
+| 参数 | 必选 | 类型 | 说明 |
+|:---:|:---:|:---:|:---:|
+| id | true | string | 账户名(用于管理用户cookie) |
+
+- **Response**
+
+| 参数 | 必选 | 类型 | 说明 |
+|:---:|:---:|:---:|:---:|
+| code | true | int | 0: 成功 1: 参数错误 2: 服务器错误 |
+| data | true | struct | 数据 |
+| msg | true | string | 请求说明(成功、参数错误、服务器错误) |
+
 ### 获取账号列表
 
 - **URL**
@@ -176,13 +204,13 @@
 
 - **功能说明**
 
-脚本会自动获取视频下载链接，然后下载视频。
+脚本会自动获取视频下载链接，然后下载视频。[查看示例](https://github.com/ShilongLee/Crawler/wiki/%E5%93%94%E5%93%A9%E5%93%94%E5%93%A9#%E4%B8%8B%E8%BD%BD%E8%A7%86%E9%A2%91)。
 
 - **脚本路径**
 
 script/bilibili/download.py
 
-- **参数**
+- **使用方法**
 
 ```bash
 python3 script/bilibili/download.py --id=<video_id> --dir=<dir> --retain=<retain> --hostport=<hostport>
